@@ -1,25 +1,37 @@
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { Streamdown } from 'streamdown';
-
 /**
- * All content in this page are only for example, replace with your own feature implementation
- * When building pages, remember your instructions in Frontend Best Practices, Design Guide and Common Pitfalls
+ * North Eastern Lawn visual system: Field Notes & Fine Lines.
+ * Editorial field-guide composition for the public service website.
  */
-export default function Home() {
-  // If theme is switchable in App.tsx, we can implement theme toggling like this:
-  // const { theme, toggleTheme } = useTheme();
+import { ArrowDownRight, ArrowUpRight, CalendarDays, CheckCircle2, CircleCheck, Leaf, MapPinned, Menu, Sprout, Wrench } from "lucide-react";
+import { useState } from "react";
+import { useLocation } from "wouter";
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      <main>
-        {/* Example: lucide-react for icons */}
-        <Loader2 className="animate-spin" />
-        Example Page
-        {/* Example: Streamdown for markdown rendering */}
-        <Streamdown>Any **markdown** content</Streamdown>
-        <Button variant="default">Example Button</Button>
-      </main>
-    </div>
-  );
+const services = [
+  ["01", "Routine lawn care", "A dependable mowing and maintenance rhythm, shaped around your property’s season and needs."],
+  ["02", "Seasonal resets", "Cleanups and transitions that prepare your outdoor space for what comes next."],
+  ["03", "Beds & improvements", "Focused enhancements for the parts of your landscape that deserve more attention."],
+];
+
+export default function Home() {
+  const [, setLocation] = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const portal = () => setLocation("/dashboard");
+  return <main className="overflow-x-hidden bg-[#f3f1ea] text-[#143c2a]">
+    <section className="relative min-h-[780px] bg-[#e9eddf]">
+      <div className="absolute inset-0 bg-[url('/manus-storage/north-eastern-hero_04276b58.jpg')] bg-cover bg-[64%_center]" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#eef0e7] via-[#eef0e7]/90 to-[#eef0e7]/5" />
+      <header className="relative mx-auto flex max-w-[1440px] items-center justify-between gap-5 px-5 pt-6 sm:px-8">
+        <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="flex items-center gap-3 text-left"><img src="/manus-storage/north-eastern-lawn-supplied-logo_158228a0.png" alt="North Eastern Lawn" className="h-14 w-28 object-contain object-left mix-blend-multiply" /><span className="hidden h-9 w-px bg-[#b9c4b8] sm:block" /><span className="hidden text-xs font-extrabold leading-4 tracking-[.12em] sm:block">PROFESSIONAL<br />LANDSCAPING</span></button>
+        <nav className="hidden items-center gap-7 text-sm font-bold lg:flex"><a href="#services" className="nav-link">Services</a><a href="#process" className="nav-link">How it works</a><a href="#portal" className="nav-link">Customer portal</a><button onClick={portal} className="brand-button">Portal sign-in <ArrowUpRight className="h-4 w-4" /></button></nav>
+        <button onClick={() => setMenuOpen(!menuOpen)} className="icon-button bg-white/70 lg:hidden"><Menu className="h-5 w-5" /></button>
+      </header>
+      {menuOpen && <div className="relative z-20 mx-5 mt-4 rounded-2xl bg-white/95 p-5 shadow-xl lg:hidden"><div className="grid gap-3 text-sm font-bold"><a onClick={() => setMenuOpen(false)} href="#services">Services</a><a onClick={() => setMenuOpen(false)} href="#process">How it works</a><button onClick={portal} className="text-left">Customer portal</button></div></div>}
+      <div className="relative mx-auto max-w-[1440px] px-5 pb-16 pt-28 sm:px-8 sm:pt-36"><div className="max-w-3xl"><p className="eyebrow">NORTH EASTERN / PROPERTY CARE</p><h1 className="display mt-6 text-[clamp(4.2rem,9vw,8.8rem)] leading-[.82] tracking-[-.045em]">The good<br />kind of <em>outside.</em></h1><p className="mt-9 max-w-md text-lg leading-8 text-[#37533f]">Thoughtful lawn and landscape care for homeowners who want their property handled with a clear plan and a practiced eye.</p><div className="mt-10 flex flex-wrap gap-3"><button onClick={portal} className="brand-button">Access customer portal <ArrowUpRight className="h-4 w-4" /></button><a href="#services" className="quiet-button">Explore services <ArrowDownRight className="h-4 w-4" /></a></div></div><div className="mt-24 flex flex-wrap items-end justify-between gap-6"><p className="text-xs font-extrabold uppercase tracking-[.16em] text-[#4b643f]">Made for the<br />Northeast growing season</p><div className="hero-stat"><span className="text-[#b7e34b]">///</span><span>Clear care<br />from first cut to final cleanup.</span></div></div></div>
+    </section>
+    <section id="services" className="mx-auto grid max-w-[1440px] gap-12 px-5 py-24 sm:px-8 sm:py-32 lg:grid-cols-[.7fr_1.3fr] lg:gap-20"><div><p className="eyebrow">WHAT WE HANDLE</p><h2 className="display mt-5 text-5xl leading-[.95]">The work that makes a property <em>feel kept.</em></h2><p className="mt-7 max-w-sm leading-7 text-[#5c705f]">Choose the core work you need now. A plan can be shaped around the season, the site, and the attention your landscape calls for.</p></div><div className="divide-y divide-[#cfd8cc]">{services.map(([number, title, description]) => <article key={number} className="group grid gap-5 py-8 first:pt-0 sm:grid-cols-[72px_1fr_auto]"><p className="text-sm font-black text-[#4b743c]">{number}</p><div><h3 className="display text-3xl transition-all group-hover:italic">{title}</h3><p className="mt-3 max-w-xl leading-7 text-[#5c705f]">{description}</p></div><div className="grid h-10 w-10 place-items-center rounded-full border border-[#afbdad] transition-colors group-hover:bg-[#143c2a] group-hover:text-[#b7e34b]"><ArrowUpRight className="h-4 w-4" /></div></article>)}</div></section>
+    <section id="process" className="relative overflow-hidden bg-[#143c2a] text-white"><div className="field-grid absolute inset-0 opacity-15" /><div className="relative mx-auto max-w-[1440px] px-5 py-24 sm:px-8 sm:py-32"><div className="grid gap-12 lg:grid-cols-[1fr_.9fr] lg:items-end"><div><p className="eyebrow text-[#b7e34b]">A SIMPLE WORKING RHYTHM</p><h2 className="display mt-5 text-5xl leading-[.9] sm:text-6xl">Good care is<br /><em>well organized.</em></h2></div><p className="max-w-md leading-8 text-[#c7d4c9]">The details belong in the work, not in a confusing process. Tell us about your property, get a clear plan, then use the portal whenever you need to see what’s next.</p></div><div className="mt-16 grid gap-px bg-[#59735e] md:grid-cols-3">{[[MapPinned,"01 / Share your property","Start with the place, the season, and what you want handled."],[Sprout,"02 / Build the routine","We turn the scope into a clear working cadence."],[CalendarDays,"03 / Keep track easily","Your portal keeps visits, requests, and account details in reach."]].map(([Icon,label,body]) => <div key={label as string} className="min-h-[230px] bg-[#143c2a] p-7 sm:p-9"><Icon className="h-6 w-6 text-[#b7e34b]" /><p className="mt-12 font-bold">{label as string}</p><p className="mt-3 text-sm leading-6 text-[#c7d4c9]">{body as string}</p></div>)}</div></div></section>
+    <section className="bg-[#dff0b8]"><div className="mx-auto grid max-w-[1440px] gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[.7fr_1.3fr] lg:items-center"><div><p className="eyebrow">SERVICE AREA</p><h2 className="display mt-4 text-4xl">Rooted in the <em>North East.</em></h2></div><div className="grid gap-5 sm:grid-cols-3">{["Residential lawns","Seasonal properties","Landscape beds"].map(item => <div key={item} className="flex items-center gap-3 text-sm font-extrabold"><CheckCircle2 className="h-5 w-5 text-[#4b743c]" />{item}</div>)}</div></div></section>
+    <section id="portal" className="mx-auto grid max-w-[1440px] gap-10 px-5 py-24 sm:px-8 sm:py-32 lg:grid-cols-[.8fr_1.2fr] lg:items-center lg:gap-20"><div className="relative min-h-[460px] overflow-hidden rounded-[2rem]"><img src="/manus-storage/north-eastern-portal_97320165.jpg" alt="A well-maintained home and lawn" className="absolute inset-0 h-full w-full object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-[#143c2a]/75 via-transparent to-transparent" /><div className="absolute bottom-7 left-7 text-white"><p className="eyebrow text-[#b7e34b]">YOUR PROPERTY, ON RECORD</p><p className="mt-3 max-w-[220px] font-medium leading-6">Clear planning has a calmer way of showing up.</p></div></div><div><p className="eyebrow">THE CUSTOMER PORTAL</p><h2 className="display mt-5 text-5xl leading-[.95]">Your outdoor space has a <em>home base.</em></h2><p className="mt-7 max-w-xl leading-8 text-[#5c705f]">When your account is active, you can keep your property details current, see scheduled work, check billing status, and request a new service in one secured place.</p><div className="mt-9 grid gap-4 sm:grid-cols-2">{[[CalendarDays,"Upcoming work","See the next visit when it is scheduled."],[MapPinned,"Property details","Keep the site information useful and current."],[Wrench,"Service requests","Give the team a clear starting point."],[CircleCheck,"Account clarity","Find your billing overview without the back-and-forth."]].map(([Icon,title,body]) => <div key={title as string} className="rounded-2xl bg-[#e7ebe2] p-5"><Icon className="h-5 w-5 text-[#4b743c]" /><h3 className="mt-5 font-extrabold">{title as string}</h3><p className="mt-2 text-sm leading-6 text-[#5c705f]">{body as string}</p></div>)}</div><button onClick={portal} className="brand-button mt-8">Go to customer portal <ArrowUpRight className="h-4 w-4" /></button></div></section>
+    <footer className="border-t border-[#cbd4c9] bg-[#e1e5db]"><div className="mx-auto flex max-w-[1440px] flex-col items-start justify-between gap-8 px-5 py-10 sm:flex-row sm:items-end sm:px-8"><div><img src="/manus-storage/north-eastern-lawn-supplied-logo_158228a0.png" alt="North Eastern Lawn" className="h-16 w-32 object-contain object-left mix-blend-multiply" /><p className="mt-3 text-sm text-[#5c705f]">Professional landscaping services.</p></div><div className="sm:text-right"><button onClick={portal} className="text-sm font-black underline underline-offset-4">Customer portal</button><p className="mt-3 text-xs uppercase tracking-[.14em] text-[#61715f]">North Eastern Lawn</p></div></div></footer>
+  </main>;
 }
