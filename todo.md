@@ -9,4 +9,4 @@
 - [ ] Add authenticated server-side portal data procedures and write unit tests for the data-access rules.
 - [ ] Browser-test the key customer flows after the Supabase schema is applied: sign-in, add property, request service, and authenticated portal states.
 - [x] Prepare Railway environment-variable guidance, README deployment instructions, and source-control hygiene.
-- [ ] Push the finished project to the user’s existing GitHub repository once its repository URL or full owner/repository name is available.
+- [x] Push the finished project to the user’s existing GitHub repository once its repository URL or full owner/repository name is available.
