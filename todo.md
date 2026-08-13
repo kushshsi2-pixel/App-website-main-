@@ -14,4 +14,4 @@
 - [x] Defer the Google OAuth experiment and preserve the existing authentication configuration.
 - [x] Redesign the marketing site with a visual-first, less text-heavy composition and richer custom imagery.
 - [x] Add a first-time signed-in customer empty state with a guided quote-request workflow.
-- [ ] Validate the redesigned desktop and mobile experience, then push the enhancement to GitHub.
+- [x] Validate the redesigned desktop and mobile experience, then push the enhancement to GitHub.
