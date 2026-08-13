@@ -27,6 +27,16 @@ const requireUser = t.middleware(async opts => {
 
 export const protectedProcedure = t.procedure.use(requireUser);
 
+const requireSupabasePortalUser = t.middleware(async opts => {
+  const { ctx, next } = opts;
+  if (!ctx.supabaseUser) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+  }
+  return next({ ctx: { ...ctx, supabaseUser: ctx.supabaseUser } });
+});
+
+export const portalProcedure = t.procedure.use(requireSupabasePortalUser);
+
 export const adminProcedure = t.procedure.use(
   t.middleware(async opts => {
     const { ctx, next } = opts;
