@@ -62,3 +62,28 @@ The supplied circular lawn-and-mower emblem remains the primary brand lockup. A 
 
 ### Signature Brand Color
 **North Eastern Green — #143C2A**
+
+---
+
+## Visual Remix — Customer Acquisition Focus
+
+### Approach 1
+**Theme Name:** Lawn Lens  
+**Very Brief Intro:** Cinematic property photography becomes the navigation system: each section is a visual window with sparse, useful overlays and the actions live in the image itself.  
+**Probability:** 0.102
+
+### Approach 2
+**Theme Name:** Cut & Collect  
+**Very Brief Intro:** Big editorial crops, bold orange accents, tactile receipts, and visual status cards turn a normally quiet service category into something more energetic and memorable.  
+**Probability:** 0.168
+
+### Approach 3
+**Theme Name:** Before the Weekend  
+**Very Brief Intro:** A lifestyle-first concept that sells the feeling of a clear Saturday rather than the mechanics of mowing, using a photo collage and a single, high-confidence quote journey.  
+**Probability:** 0.131
+
+### Chosen Direction: Cut & Collect
+
+The redesign moves from an editorial information page to an **image-led acquisition experience**. It uses dramatic photograph crops, a compact color-blocked quote prompt, oversized service imagery, and barely-there supporting copy. Orange is elevated from a minor accent to the action color; evergreen remains the grounding canvas.
+
+The first-time customer portal state will behave like a focused conversion moment rather than an empty dashboard. It will show a visual property-care brief, three illustrated quote steps, and one clear call to action: **Build my quote**. The existing service request form remains the data destination, but the first-use experience will guide customers into it instead of presenting a blank calendar.

@@ -1,24 +1,12 @@
-/**
- * North Eastern Lawn visual system: Field Notes & Fine Lines.
- * A warm, operational customer portal built around the next useful property-care action.
- */
-import { Button } from "@/components/ui/button";
-import { canCreateServiceRequest, formatCurrencyFromCents } from "@/lib/portalData";
+/** North Eastern Lawn visual system: Cut & Collect. */
+import { canCreateQuoteRequest, canCreateServiceRequest, formatCurrencyFromCents } from "@/lib/portalData";
 import { Invoice, Property, ServiceVisit, supabase } from "@/lib/supabase";
-import { ArrowLeft, ArrowUpRight, CalendarDays, Check, ChevronRight, CircleDollarSign, ClipboardList, Home, Leaf, Loader2, LogOut, MapPin, Plus, Sprout, Wrench } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Check, CircleDollarSign, Home, Loader2, LogOut, MapPin, Plus, Sparkles, Sprout } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 
 type PortalMode = "loading" | "signed-out" | "ready";
-
-function shortDate(value: string | null) {
-  if (!value) return "To be scheduled";
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
-}
-
-function statusLabel(status: string) {
-  return status.replace("_", " ");
-}
+const formatDate = (value: string | null) => value ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value)) : "To be scheduled";
 
 export default function CustomerDashboard() {
   const [, setLocation] = useLocation();
@@ -27,147 +15,46 @@ export default function CustomerDashboard() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [visits, setVisits] = useState<ServiceVisit[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [quoteStatus, setQuoteStatus] = useState<string | null>(null);
+  const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [showPropertyForm, setShowPropertyForm] = useState(false);
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-
-  const nextVisit = useMemo(() => visits.find(visit => visit.status === "scheduled" || visit.status === "weather_hold") ?? null, [visits]);
+  const nextVisit = useMemo(() => visits.find(visit => ["scheduled", "weather_hold"].includes(visit.status)) ?? null, [visits]);
   const outstanding = useMemo(() => invoices.filter(invoice => ["open", "overdue"].includes(invoice.status)), [invoices]);
+  const isFirstTime = !properties.length && !visits.length && !invoices.length;
 
   async function loadPortal() {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const user = sessionData.session?.user;
-    if (!user) {
-      setMode("signed-out");
-      return;
-    }
-
+    const { data: auth } = await supabase.auth.getSession();
+    const user = auth.session?.user;
+    if (!user) { setMode("signed-out"); return; }
     setFirstName((user.user_metadata.full_name || user.email || "there").split(" ")[0]);
     await supabase.from("profiles").upsert({ id: user.id, full_name: user.user_metadata.full_name || null }, { onConflict: "id" });
-
-    const [propertyResult, visitResult, invoiceResult] = await Promise.all([
-      supabase.from("properties").select("id,nickname,address_line1,city,state,postal_code").order("created_at", { ascending: true }),
-      supabase.from("service_visits").select("id,scheduled_start,service_type,status,notes_for_customer").order("scheduled_start", { ascending: true }).limit(8),
-      supabase.from("invoices").select("id,invoice_number,amount_cents,due_date,status").order("due_date", { ascending: true }).limit(8),
+    const [propertyResult, visitResult, invoiceResult, quoteResult] = await Promise.all([
+      supabase.from("properties").select("id,nickname,address_line1,city,state,postal_code").order("created_at"),
+      supabase.from("service_visits").select("id,scheduled_start,service_type,status,notes_for_customer").order("scheduled_start").limit(8),
+      supabase.from("invoices").select("id,invoice_number,amount_cents,due_date,status").order("due_date").limit(8),
+      supabase.from("quote_requests").select("status").order("created_at", { ascending: false }).limit(1),
     ]);
-
-    setProperties((propertyResult.data ?? []) as Property[]);
-    setVisits((visitResult.data ?? []) as ServiceVisit[]);
-    setInvoices((invoiceResult.data ?? []) as Invoice[]);
-    setError(propertyResult.error?.message || visitResult.error?.message || invoiceResult.error?.message || "");
-    setMode("ready");
+    setProperties((propertyResult.data ?? []) as Property[]); setVisits((visitResult.data ?? []) as ServiceVisit[]); setInvoices((invoiceResult.data ?? []) as Invoice[]); setQuoteStatus(quoteResult.data?.[0]?.status ?? null);
+    setError(propertyResult.error?.message || visitResult.error?.message || invoiceResult.error?.message || quoteResult.error?.message || ""); setMode("ready");
   }
+  useEffect(() => { void loadPortal(); const { data } = supabase.auth.onAuthStateChange(() => void loadPortal()); return () => data.subscription.unsubscribe(); }, []);
+  async function signOut() { await supabase.auth.signOut(); setLocation("/"); }
+  async function addProperty(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setBusy(true); const form = new FormData(event.currentTarget); const userId = (await supabase.auth.getSession()).data.session?.user.id; if (!userId) return setLocation("/login"); const { error: insertError } = await supabase.from("properties").insert({ profile_id: userId, nickname: String(form.get("nickname") || "My property"), address_line1: String(form.get("address")), city: String(form.get("city")), state: String(form.get("state")), postal_code: String(form.get("postalCode")) }); setBusy(false); if (insertError) return setError(insertError.message); setShowPropertyForm(false); setNotice("Property details saved."); await loadPortal(); }
+  async function requestService(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setBusy(true); const form = new FormData(event.currentTarget); const userId = (await supabase.auth.getSession()).data.session?.user.id; const input = { propertyId: String(form.get("propertyId") || ""), serviceType: String(form.get("serviceType") || ""), preferredDate: String(form.get("preferredDate") || "") }; if (!userId || !canCreateServiceRequest(input)) { setBusy(false); return setError("Choose a property, service, and preferred date."); } const { error: insertError } = await supabase.from("service_requests").insert({ profile_id: userId, property_id: input.propertyId, service_type: input.serviceType, preferred_date: input.preferredDate, notes: String(form.get("notes") || "") || null }); setBusy(false); if (insertError) return setError(insertError.message); setShowRequestForm(false); setNotice("Request received. Our team will confirm the next step."); }
+  async function requestQuote(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setBusy(true); const form = new FormData(event.currentTarget); const userId = (await supabase.auth.getSession()).data.session?.user.id; const input = { address: String(form.get("address") || ""), city: String(form.get("city") || ""), state: String(form.get("state") || ""), postalCode: String(form.get("postalCode") || ""), serviceInterests: form.getAll("services").map(value => String(value)) }; if (!userId || !canCreateQuoteRequest(input)) { setBusy(false); return setError("Add the address and choose at least one service."); } const { error: insertError } = await supabase.from("quote_requests").insert({ profile_id: userId, property_address: input.address, city: input.city, state: input.state, postal_code: input.postalCode, service_interests: input.serviceInterests, property_notes: String(form.get("notes") || "") || null }); setBusy(false); if (insertError) return setError(insertError.message); setShowQuoteForm(false); setQuoteStatus("submitted"); setNotice("Quote brief received. We’ll be in touch with the next step."); }
 
-  useEffect(() => {
-    void loadPortal();
-    const { data: listener } = supabase.auth.onAuthStateChange(() => { void loadPortal(); });
-    return () => listener.subscription.unsubscribe();
-  }, []);
+  if (mode === "loading") return <div className="grid min-h-screen place-items-center bg-[#f6f1e8]"><Loader2 className="h-8 w-8 animate-spin text-[#123c29]" /></div>;
+  if (mode === "signed-out") return <main className="min-h-screen bg-[#123c29] p-4 text-white sm:p-8"><section className="relative mx-auto flex min-h-[calc(100vh-2rem)] max-w-6xl items-end overflow-hidden rounded-[2rem] p-7 sm:min-h-[calc(100vh-4rem)] sm:p-12"><img src="/manus-storage/north-eastern-portal_97320165.jpg" alt="Maintained North Eastern Lawn property" className="absolute inset-0 h-full w-full object-cover opacity-50" /><div className="absolute inset-0 bg-gradient-to-r from-[#123c29] via-[#123c29]/85 to-[#123c29]/25" /><div className="relative z-10 max-w-xl"><span className="grid h-12 w-12 place-items-center rounded-full bg-[#f6f1e8]"><img src="/manus-storage/north-eastern-mark_65290f75.png" alt="North Eastern Lawn" className="h-10 w-10" /></span><p className="eyebrow mt-12 text-[#dd784d]">CUSTOMER PORTAL / START HERE</p><h1 className="display mt-4 text-5xl leading-[.88] sm:text-7xl">Your quote<br /><em>starts outside.</em></h1><p className="mt-6 max-w-md text-lg leading-8 text-[#d3dfd2]">Sign in, share a few details about the place, and we’ll bring back the plan.</p><button onClick={() => setLocation("/login")} className="mt-9 inline-flex min-h-14 items-center gap-3 rounded-full bg-[#dd784d] px-6 text-sm font-black text-[#123c29]">Continue to sign-in <ArrowUpRight className="h-5 w-5" /></button><button onClick={() => setLocation("/")} className="ml-5 text-sm font-bold underline underline-offset-4">Return to website</button></div></section></main>;
 
-  async function handleSignOut() {
-    await supabase.auth.signOut();
-    setLocation("/");
-  }
-
-  async function addProperty(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true); setError("");
-    const form = new FormData(event.currentTarget);
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData.session?.user.id;
-    if (!userId) { setLocation("/login"); return; }
-    const { error: insertError } = await supabase.from("properties").insert({
-      profile_id: userId,
-      nickname: String(form.get("nickname") || "My property"),
-      address_line1: String(form.get("address") || ""),
-      city: String(form.get("city") || ""),
-      state: String(form.get("state") || ""),
-      postal_code: String(form.get("postalCode") || ""),
-    });
-    setBusy(false);
-    if (insertError) { setError(insertError.message); return; }
-    setShowPropertyForm(false); setNotice("Property details saved."); await loadPortal();
-  }
-
-  async function requestService(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true); setError("");
-    const form = new FormData(event.currentTarget);
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData.session?.user.id;
-    const input = { propertyId: String(form.get("propertyId") || ""), serviceType: String(form.get("serviceType") || ""), preferredDate: String(form.get("preferredDate") || "") };
-    if (!userId || !canCreateServiceRequest(input)) { setBusy(false); setError("Choose a property, service, and preferred date."); return; }
-    const { error: insertError } = await supabase.from("service_requests").insert({
-      profile_id: userId,
-      property_id: input.propertyId,
-      service_type: input.serviceType,
-      preferred_date: input.preferredDate,
-      notes: String(form.get("notes") || "") || null,
-    });
-    setBusy(false);
-    if (insertError) { setError(insertError.message); return; }
-    setShowRequestForm(false); setNotice("Request received. Our team will confirm the next step.");
-  }
-
-  if (mode === "loading") return <div className="min-h-screen grid place-items-center bg-[#f3f1ea]"><Loader2 className="h-8 w-8 animate-spin text-[#143c2a]" /></div>;
-  if (mode === "signed-out") {
-    return <main className="min-h-screen grid place-items-center bg-[#f3f1ea] px-5"><div className="paper-card max-w-md text-center p-10"><div className="mx-auto h-12 w-12 rounded-full bg-[#dff0b8] grid place-items-center"><Sprout className="h-6 w-6" /></div><p className="eyebrow mt-7">CUSTOMER PORTAL</p><h1 className="display mt-3 text-4xl">Sign in to see your plan.</h1><p className="mt-4 leading-7 text-[#5c705f]">Your property details and visits are available through a secure email sign-in.</p><button onClick={() => setLocation("/login")} className="brand-button mt-8 w-full justify-center">Continue to sign-in <ArrowUpRight className="h-4 w-4" /></button><button onClick={() => setLocation("/")} className="mt-5 text-sm font-bold underline underline-offset-4">Return to website</button></div></main>;
-  }
-
-  return (
-    <main className="min-h-screen bg-[#f3f1ea] text-[#143c2a]">
-      <header className="sticky top-0 z-30 bg-[#f3f1ea]/90 backdrop-blur-lg border-b border-[#dfe3da]">
-        <div className="max-w-[1440px] mx-auto px-5 sm:px-8 h-[74px] flex items-center justify-between gap-4">
-          <button onClick={() => setLocation("/")} className="flex items-center gap-3 group"><img src="/manus-storage/north-eastern-mark_65290f75.png" alt="" className="h-10 w-10" /><span className="font-black tracking-tight text-lg">NORTH EASTERN <span className="font-normal">LAWN</span></span></button>
-          <div className="flex items-center gap-3"><span className="hidden sm:inline text-sm text-[#5c705f]">Customer portal</span><button onClick={handleSignOut} className="icon-button" title="Sign out"><LogOut className="h-4 w-4" /></button></div>
-        </div>
-      </header>
-
-      <div className="max-w-[1440px] mx-auto px-5 sm:px-8 py-8 sm:py-11 grid xl:grid-cols-[220px_minmax(0,1fr)] gap-8">
-        <aside className="xl:pt-5">
-          <p className="eyebrow mb-4">ACCOUNT MENU</p>
-          <nav className="flex xl:flex-col gap-2 overflow-x-auto pb-1"><a href="#overview" className="portal-nav active"><Home className="h-4 w-4" />Overview</a><a href="#schedule" className="portal-nav"><CalendarDays className="h-4 w-4" />Schedule</a><a href="#property" className="portal-nav"><MapPin className="h-4 w-4" />Property</a><a href="#billing" className="portal-nav"><CircleDollarSign className="h-4 w-4" />Billing</a></nav>
-          <div className="hidden xl:block mt-12 rounded-2xl overflow-hidden"><img src="/manus-storage/north-eastern-portal_97320165.jpg" alt="A maintained residential property" className="h-52 w-full object-cover" /><div className="bg-[#143c2a] p-5 text-white"><p className="text-xs uppercase tracking-[.15em] text-[#b7e34b]">Need something else?</p><p className="mt-3 text-sm leading-6 text-[#d6e4d6]">A quick request is the fastest way to get your property on our board.</p></div></div>
-        </aside>
-
-        <div className="min-w-0 space-y-8">
-          <section id="overview" className="relative overflow-hidden rounded-[1.8rem] bg-[#143c2a] px-6 py-8 sm:px-10 sm:py-11 text-white">
-            <div className="absolute inset-0 field-grid opacity-15" />
-            <div className="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-7">
-              <div><p className="eyebrow text-[#b7e34b]">PROPERTY CARE / ACTIVE</p><h1 className="display mt-4 text-4xl sm:text-5xl">Good to see you, <em>{firstName}.</em></h1><p className="mt-4 text-[#cdd9cf] max-w-xl leading-7">Everything about your service plan, in one clear place.</p></div>
-              <button onClick={() => setShowRequestForm(true)} className="brand-button shrink-0">Request service <ArrowUpRight className="h-4 w-4" /></button>
-            </div>
-          </section>
-
-          {notice ? <div className="flex items-center gap-3 rounded-2xl bg-[#dff0b8] px-5 py-4 text-sm font-semibold"><Check className="h-5 w-5" />{notice}</div> : null}
-          {error ? <div className="rounded-2xl bg-[#f4ddd6] px-5 py-4 text-sm text-[#8a2d1c]">{error}</div> : null}
-
-          <section id="schedule" className="grid lg:grid-cols-[1.35fr_.65fr] gap-5">
-            <div className="paper-card p-6 sm:p-8">
-              <div className="flex items-start justify-between gap-4"><div><p className="eyebrow">UP NEXT</p><h2 className="display mt-3 text-3xl">{nextVisit ? nextVisit.service_type : "Your next visit"}</h2></div><span className="h-11 w-11 rounded-full bg-[#dff0b8] grid place-items-center"><CalendarDays className="h-5 w-5" /></span></div>
-              {nextVisit ? <div className="mt-8 grid sm:grid-cols-3 gap-4 border-t border-[#dde2d9] pt-6"><div><p className="metric-label">Date</p><p className="mt-2 font-bold">{shortDate(nextVisit.scheduled_start)}</p></div><div><p className="metric-label">Status</p><p className="mt-2 font-bold capitalize">{statusLabel(nextVisit.status)}</p></div><div><p className="metric-label">Service note</p><p className="mt-2 text-sm leading-6 text-[#5c705f]">{nextVisit.notes_for_customer || "Details will appear before your visit."}</p></div></div> : <div className="mt-7 rounded-2xl bg-[#edf0e8] p-5 text-[#5c705f]"><p className="font-bold text-[#143c2a]">Nothing on the calendar yet.</p><p className="mt-1 text-sm leading-6">Send us a request and we’ll confirm the best service window for your property.</p></div>}
-            </div>
-            <div className="rounded-[1.5rem] bg-[#dd784d] p-6 text-[#143c2a] flex flex-col justify-between"><ClipboardList className="h-7 w-7" /><div><p className="eyebrow text-[#143c2a]">ACCOUNT ACTION</p><h2 className="display mt-3 text-3xl">Need a change?</h2><button onClick={() => setShowRequestForm(true)} className="mt-5 inline-flex items-center gap-2 text-sm font-extrabold border-b-2 border-[#143c2a] pb-1">Send a service request <ChevronRight className="h-4 w-4" /></button></div></div>
-          </section>
-
-          <section id="property" className="grid lg:grid-cols-[1.1fr_.9fr] gap-5">
-            <div className="paper-card p-6 sm:p-8"><div className="flex justify-between gap-4"><div><p className="eyebrow">YOUR PROPERTIES</p><h2 className="display mt-3 text-3xl">Care starts with context.</h2></div><button onClick={() => setShowPropertyForm(true)} className="icon-button"><Plus className="h-5 w-5" /></button></div>
-              {properties.length ? <div className="mt-7 divide-y divide-[#dde2d9]">{properties.map(property => <div key={property.id} className="py-4 flex justify-between gap-4"><div><p className="font-bold">{property.nickname || "Property"}</p><p className="mt-1 text-sm text-[#5c705f]">{property.address_line1}, {property.city}, {property.state} {property.postal_code}</p></div><MapPin className="h-4 w-4 mt-1 text-[#4b743c]" /></div>)}</div> : <div className="mt-7 rounded-2xl border border-dashed border-[#b6c2b5] p-5"><p className="font-bold">Add your first property.</p><p className="mt-1 text-sm leading-6 text-[#5c705f]">This gives the team the right starting point before you request a service.</p><button onClick={() => setShowPropertyForm(true)} className="mt-4 text-sm font-bold underline underline-offset-4">Add property details</button></div>}
-            </div>
-            <div className="relative overflow-hidden rounded-[1.5rem] min-h-[280px]"><img src="/manus-storage/north-eastern-service_3e586567.jpg" alt="Professional mowing in progress" className="absolute inset-0 h-full w-full object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-[#143c2a]/90 via-[#143c2a]/20 to-transparent" /><div className="absolute bottom-0 p-7 text-white"><Leaf className="h-6 w-6 text-[#b7e34b]" /><p className="eyebrow mt-4 text-[#b7e34b]">HOW WE WORK</p><p className="mt-2 font-medium leading-7 max-w-xs">Tell us what your property needs. We’ll turn it into a clear plan.</p></div></div>
-          </section>
-
-          <section id="billing" className="paper-card p-6 sm:p-8"><div className="flex items-start justify-between"><div><p className="eyebrow">BILLING</p><h2 className="display mt-3 text-3xl">Invoice overview.</h2></div><CircleDollarSign className="h-6 w-6 text-[#4b743c]" /></div>
-            {outstanding.length ? <div className="mt-7 divide-y divide-[#dde2d9]">{outstanding.map(invoice => <div key={invoice.id} className="py-4 flex items-center justify-between gap-4"><div><p className="font-bold">{invoice.invoice_number}</p><p className="mt-1 text-sm text-[#5c705f]">Due {shortDate(invoice.due_date)} · {statusLabel(invoice.status)}</p></div><p className="font-bold">{formatCurrencyFromCents(invoice.amount_cents)}</p></div>)}</div> : <div className="mt-7 flex items-center gap-3 rounded-2xl bg-[#edf0e8] p-5"><Check className="h-5 w-5 text-[#4b743c]" /><div><p className="font-bold">No outstanding invoices.</p><p className="mt-1 text-sm text-[#5c705f]">Billing records will appear here when available.</p></div></div>}
-          </section>
-        </div>
-      </div>
-
-      {showPropertyForm ? <div className="modal-scrim"><form onSubmit={addProperty} className="modal-card"><div className="flex justify-between gap-4"><div><p className="eyebrow">PROPERTY SETUP</p><h2 className="display mt-2 text-3xl">Where do we care for?</h2></div><button type="button" onClick={() => setShowPropertyForm(false)} className="icon-button">×</button></div><div className="mt-7 grid gap-4"><input name="nickname" required placeholder="Property name (e.g. Home)" className="portal-input" /><input name="address" required placeholder="Street address" className="portal-input" /><div className="grid grid-cols-2 gap-4"><input name="city" required placeholder="City" className="portal-input" /><input name="state" required placeholder="State" className="portal-input" /></div><input name="postalCode" required placeholder="ZIP code" className="portal-input" /></div><button disabled={busy} className="brand-button mt-7 w-full justify-center">{busy ? "Saving…" : "Save property"} <ArrowUpRight className="h-4 w-4" /></button></form></div> : null}
-
-      {showRequestForm ? <div className="modal-scrim"><form onSubmit={requestService} className="modal-card"><div className="flex justify-between gap-4"><div><p className="eyebrow">SERVICE REQUEST</p><h2 className="display mt-2 text-3xl">What can we help with?</h2></div><button type="button" onClick={() => setShowRequestForm(false)} className="icon-button">×</button></div><div className="mt-7 grid gap-4"><select name="propertyId" required className="portal-input"><option value="">Choose a property</option>{properties.map(property => <option key={property.id} value={property.id}>{property.nickname || property.address_line1}</option>)}</select><select name="serviceType" required className="portal-input"><option value="">Choose a service</option><option>Mowing & maintenance</option><option>Seasonal cleanup</option><option>Mulch & beds</option><option>Landscape improvement</option><option>Other property care</option></select><input name="preferredDate" type="date" required className="portal-input" /><textarea name="notes" rows={3} placeholder="Anything the team should know?" className="portal-input resize-none" /></div><button disabled={busy || !properties.length} className="brand-button mt-7 w-full justify-center">{busy ? "Sending…" : "Send request"} <ArrowUpRight className="h-4 w-4" /></button>{!properties.length ? <p className="mt-3 text-sm text-[#8a2d1c]">Add a property before sending your first request.</p> : null}</form></div> : null}
-    </main>
-  );
+  const quotePanel = <section className="grid gap-5 lg:grid-cols-[1.25fr_.75fr]"><div className="relative min-h-[430px] overflow-hidden rounded-[1.7rem] bg-[#dd784d] p-7 sm:p-10"><img src="/manus-storage/north-eastern-portal_97320165.jpg" alt="Home ready for a quote" className="absolute inset-y-0 right-0 h-full w-[58%] object-cover" /><div className="absolute inset-y-0 right-[42%] w-40 bg-gradient-to-r from-[#dd784d] to-transparent" /><div className="relative z-10 max-w-sm"><Sparkles className="h-7 w-7" /><p className="eyebrow mt-14 text-[#123c29]">{quoteStatus ? "QUOTE BRIEF RECEIVED" : "START HERE"}</p><h2 className="display mt-4 text-5xl leading-[.88]">{quoteStatus ? <>We’re on<br /><em>your place.</em></> : <>Your place.<br /><em>Your quote.</em></>}</h2><p className="mt-5 max-w-[220px] text-sm font-semibold leading-6 text-[#123c29]/75">{quoteStatus ? "Your brief is with the team. We’ll come back with the best next step." : "Tell us what needs attention. Our team will shape the next step around your property."}</p>{quoteStatus ? <div className="mt-7 inline-flex items-center gap-2 rounded-full bg-[#dff0b8] px-5 py-3 text-sm font-extrabold"><Check className="h-4 w-4" />Submitted</div> : <button onClick={() => setShowQuoteForm(true)} className="mt-7 inline-flex items-center gap-2 rounded-full bg-[#123c29] px-5 py-3 text-sm font-extrabold text-white">Build my quote <ArrowUpRight className="h-4 w-4" /></button>}</div></div><div className="grid gap-4"><div className="rounded-[1.5rem] bg-[#e7ece2] p-6"><p className="text-4xl font-black text-[#dd784d]">01</p><p className="mt-10 font-extrabold">Where is it?</p><p className="mt-2 text-sm leading-6 text-[#5c705f]">Add the address and a few property details.</p></div><div className="rounded-[1.5rem] bg-[#123c29] p-6 text-white"><p className="text-4xl font-black text-[#dd784d]">02</p><p className="mt-10 font-extrabold">What needs work?</p><p className="mt-2 text-sm leading-6 text-[#d3dfd2]">Choose the services that matter right now.</p></div><div className="rounded-[1.5rem] bg-[#dff0b8] p-6"><p className="text-4xl font-black text-[#4b743c]">03</p><p className="mt-10 font-extrabold">We’ll come back with a plan.</p></div></div></section>;
+  const activePanel = <><section className="grid gap-5 lg:grid-cols-[1.35fr_.65fr]"><div className="paper-card p-6 sm:p-8"><div className="flex items-start justify-between"><div><p className="eyebrow">UP NEXT</p><h2 className="display mt-3 text-3xl">{nextVisit?.service_type || "Your next visit"}</h2></div><CalendarDays className="h-6 w-6 text-[#4b743c]" /></div><p className="mt-7 text-sm leading-6 text-[#5c705f]">{nextVisit ? `${formatDate(nextVisit.scheduled_start)} · ${nextVisit.notes_for_customer || "Details will appear before your visit."}` : "Nothing on the calendar yet. Send a service request when something changes."}</p></div><button onClick={() => setShowRequestForm(true)} className="rounded-[1.5rem] bg-[#dd784d] p-6 text-left"><p className="eyebrow">ACCOUNT ACTION</p><h2 className="display mt-10 text-3xl">Need a change?</h2><p className="mt-4 text-sm font-bold underline underline-offset-4">Send a service request</p></button></section><section className="grid gap-5 lg:grid-cols-2"><div className="paper-card p-6"><div className="flex justify-between"><div><p className="eyebrow">YOUR PROPERTIES</p><h2 className="display mt-3 text-3xl">On record.</h2></div><button onClick={() => setShowPropertyForm(true)} className="icon-button"><Plus className="h-5 w-5" /></button></div><div className="mt-6 space-y-4">{properties.map(property => <div key={property.id} className="flex gap-3 border-t border-[#dde2d9] pt-4"><MapPin className="h-4 w-4 text-[#4b743c]" /><p className="text-sm font-semibold">{property.nickname || property.address_line1}<br /><span className="font-normal text-[#5c705f]">{property.city}, {property.state} {property.postal_code}</span></p></div>)}</div></div><div className="paper-card p-6"><div className="flex justify-between"><div><p className="eyebrow">BILLING</p><h2 className="display mt-3 text-3xl">Clear account.</h2></div><CircleDollarSign className="h-6 w-6 text-[#4b743c]" /></div>{outstanding.length ? <div className="mt-6 space-y-3">{outstanding.map(invoice => <div key={invoice.id} className="flex justify-between text-sm"><span>{invoice.invoice_number} · due {formatDate(invoice.due_date)}</span><strong>{formatCurrencyFromCents(invoice.amount_cents)}</strong></div>)}</div> : <p className="mt-6 text-sm text-[#5c705f]">No outstanding invoices.</p>}</div></section></>;
+  return <main className="min-h-screen bg-[#f6f1e8] text-[#123c29]"><header className="sticky top-0 z-30 border-b border-[#dfe3da] bg-[#f6f1e8]/90 backdrop-blur-lg"><div className="mx-auto flex h-[74px] max-w-[1440px] items-center justify-between px-5 sm:px-8"><button onClick={() => setLocation("/")} className="flex items-center gap-3"><img src="/manus-storage/north-eastern-mark_65290f75.png" alt="North Eastern Lawn" className="h-10 w-10" /><span className="text-lg font-black">NORTH EASTERN LAWN</span></button><button onClick={signOut} className="icon-button"><LogOut className="h-4 w-4" /></button></div></header><div className="mx-auto grid max-w-[1440px] gap-8 px-5 py-8 sm:px-8 sm:py-11 xl:grid-cols-[180px_minmax(0,1fr)]"><aside><p className="eyebrow mb-4">ACCOUNT MENU</p><nav className="flex gap-2 xl:flex-col"><a href="#overview" className="portal-nav active"><Home className="h-4 w-4" />Overview</a><a href="#schedule" className="portal-nav"><CalendarDays className="h-4 w-4" />Plan</a></nav></aside><div className="space-y-8"><section id="overview" className="relative overflow-hidden rounded-[1.8rem] bg-[#123c29] px-6 py-8 text-white sm:px-10 sm:py-11"><div className="field-grid absolute inset-0 opacity-15" /><div className="relative flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between"><div><p className="eyebrow text-[#dd784d]">{isFirstTime ? "YOUR FIRST STEP" : "PROPERTY CARE / ACTIVE"}</p><h1 className="display mt-4 text-4xl sm:text-5xl">{isFirstTime ? <>Let’s make a<br /><em>good first cut.</em></> : <>Good to see you, <em>{firstName}.</em></>}</h1><p className="mt-4 max-w-xl leading-7 text-[#cdd9cf]">{isFirstTime ? "No service plan yet — start with a quick quote brief and we’ll take it from there." : "Everything about your service plan, in one clear place."}</p></div><button onClick={() => isFirstTime ? setShowQuoteForm(true) : setShowRequestForm(true)} className="brand-button">{isFirstTime ? "Build my quote" : "Request service"} <ArrowUpRight className="h-4 w-4" /></button></div></section>{notice ? <div className="flex gap-3 rounded-2xl bg-[#dff0b8] px-5 py-4 text-sm font-semibold"><Check className="h-5 w-5" />{notice}</div> : null}{error ? <div className="rounded-2xl bg-[#f4ddd6] p-4 text-sm text-[#8a2d1c]">{error}</div> : null}<section id="schedule">{isFirstTime ? quotePanel : activePanel}</section></div></div>{showQuoteForm ? <QuoteForm busy={busy} close={() => setShowQuoteForm(false)} submit={requestQuote} /> : null}{showPropertyForm ? <PropertyForm busy={busy} close={() => setShowPropertyForm(false)} submit={addProperty} /> : null}{showRequestForm ? <RequestForm busy={busy} close={() => setShowRequestForm(false)} submit={requestService} properties={properties} /> : null}</main>;
 }
+
+function QuoteForm({ busy, close, submit }: { busy: boolean; close: () => void; submit: (event: FormEvent<HTMLFormElement>) => void }) { return <div className="modal-scrim"><form onSubmit={submit} className="modal-card"><div className="flex justify-between"><div><p className="eyebrow">YOUR QUOTE BRIEF</p><h2 className="display mt-2 text-3xl">Let’s see the place.</h2></div><button type="button" onClick={close} className="icon-button">×</button></div><div className="mt-7 grid gap-4"><input name="address" required placeholder="Street address" className="portal-input" /><div className="grid grid-cols-2 gap-4"><input name="city" required placeholder="City" className="portal-input" /><input name="state" required placeholder="State" className="portal-input" /></div><input name="postalCode" required placeholder="ZIP code" className="portal-input" /><fieldset><legend className="text-sm font-bold">What should we look at?</legend><div className="mt-3 grid grid-cols-2 gap-2 text-sm">{[["Mowing & maintenance", "Mowing"], ["Seasonal cleanup", "Cleanup"], ["Mulch & beds", "Beds & mulch"], ["Landscape improvement", "Improvements"]].map(([value, label]) => <label key={value} className="flex items-center gap-2 rounded-xl border border-[#c8d3c6] bg-white p-3 font-bold"><input type="checkbox" name="services" value={value} /> {label}</label>)}</div></fieldset><textarea name="notes" rows={3} placeholder="Anything we should know about the property?" className="portal-input resize-none" /></div><button disabled={busy} className="brand-button mt-7 w-full justify-center">{busy ? "Sending…" : "Send quote brief"} <ArrowUpRight className="h-4 w-4" /></button></form></div>; }
+function PropertyForm({ busy, close, submit }: { busy: boolean; close: () => void; submit: (event: FormEvent<HTMLFormElement>) => void }) { return <div className="modal-scrim"><form onSubmit={submit} className="modal-card"><div className="flex justify-between"><h2 className="display text-3xl">Add a property</h2><button type="button" onClick={close} className="icon-button">×</button></div><div className="mt-7 grid gap-4"><input name="nickname" required placeholder="Property name" className="portal-input" /><input name="address" required placeholder="Street address" className="portal-input" /><div className="grid grid-cols-2 gap-4"><input name="city" required placeholder="City" className="portal-input" /><input name="state" required placeholder="State" className="portal-input" /></div><input name="postalCode" required placeholder="ZIP code" className="portal-input" /></div><button disabled={busy} className="brand-button mt-7 w-full justify-center">Save property</button></form></div>; }
+function RequestForm({ busy, close, submit, properties }: { busy: boolean; close: () => void; submit: (event: FormEvent<HTMLFormElement>) => void; properties: Property[] }) { return <div className="modal-scrim"><form onSubmit={submit} className="modal-card"><div className="flex justify-between"><h2 className="display text-3xl">Request service</h2><button type="button" onClick={close} className="icon-button">×</button></div><div className="mt-7 grid gap-4"><select name="propertyId" required className="portal-input"><option value="">Choose a property</option>{properties.map(property => <option key={property.id} value={property.id}>{property.nickname || property.address_line1}</option>)}</select><select name="serviceType" required className="portal-input"><option value="">Choose a service</option><option>Mowing & maintenance</option><option>Seasonal cleanup</option><option>Mulch & beds</option><option>Landscape improvement</option></select><input name="preferredDate" type="date" required className="portal-input" /><textarea name="notes" rows={3} placeholder="Anything the team should know?" className="portal-input resize-none" /></div><button disabled={busy} className="brand-button mt-7 w-full justify-center">Send request</button></form></div>; }

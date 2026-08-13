@@ -1,6 +1,6 @@
 /**
- * North Eastern Lawn visual system: Field Notes & Fine Lines.
- * Small pure helpers keep customer-portal states consistent and testable.
+ * North Eastern Lawn visual system: Cut & Collect.
+ * Small pure helpers keep customer portal submission rules consistent and testable.
  */
 export function canCreateServiceRequest(input: {
   propertyId: string;
@@ -8,6 +8,16 @@ export function canCreateServiceRequest(input: {
   preferredDate: string;
 }) {
   return Boolean(input.propertyId && input.serviceType && input.preferredDate);
+}
+
+export function canCreateQuoteRequest(input: {
+  address: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  serviceInterests: string[];
+}) {
+  return Boolean(input.address && input.city && input.state && input.postalCode && input.serviceInterests.length);
 }
 
 export function formatCurrencyFromCents(amountCents: number) {

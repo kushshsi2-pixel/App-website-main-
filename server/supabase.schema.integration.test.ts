@@ -3,7 +3,7 @@ import { Client } from "pg";
 import { describe, expect, it } from "vitest";
 
 const connectionString = process.env.SUPABASE_DATABASE_URL;
-const requiredTables = ["profiles", "properties", "service_plans", "service_visits", "invoices", "service_requests"];
+const requiredTables = ["profiles", "properties", "service_plans", "service_visits", "invoices", "service_requests", "quote_requests"];
 
 describe("North Eastern Lawn Supabase schema", () => {
   it("creates every customer portal table with row-level security enabled", async () => {

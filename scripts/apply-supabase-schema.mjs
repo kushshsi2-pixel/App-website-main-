@@ -1,5 +1,5 @@
 /** North Eastern Lawn visual system: Field Notes & Fine Lines. */
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import dns from "node:dns";
 import { Client } from "pg";
 
@@ -8,7 +8,8 @@ dns.setDefaultResultOrder("ipv4first");
 const connectionString = process.env.SUPABASE_DATABASE_URL;
 if (!connectionString) throw new Error("SUPABASE_DATABASE_URL is required");
 
-const sql = await readFile(new URL("../supabase/migrations/001_north_eastern_lawn.sql", import.meta.url), "utf8");
+const migrationDirectory = new URL("../supabase/migrations/", import.meta.url);
+const migrationFiles = (await readdir(migrationDirectory)).filter(file => file.endsWith(".sql")).sort();
 const directUrl = new URL(connectionString);
 const projectRef = directUrl.hostname.split(".")[0].replace("db", "").replace(/^-/, "") || "oyvfkbosbjgtqvlcrfex";
 const poolerHost = process.env.SUPABASE_POOLER_HOST || "aws-0-us-east-1.pooler.supabase.com";
@@ -23,8 +24,11 @@ const client = new Client({
 });
 await client.connect();
 try {
-  await client.query(sql);
-  console.log("Supabase schema applied successfully.");
+  for (const migrationFile of migrationFiles) {
+    const sql = await readFile(new URL(migrationFile, migrationDirectory), "utf8");
+    await client.query(sql);
+    console.log(`Applied ${migrationFile}`);
+  }
 } finally {
   await client.end();
 }
