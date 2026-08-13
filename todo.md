@@ -15,3 +15,6 @@
 - [x] Redesign the marketing site with a visual-first, less text-heavy composition and richer custom imagery.
 - [x] Add a first-time signed-in customer empty state with a guided quote-request workflow.
 - [x] Validate the redesigned desktop and mobile experience, then push the enhancement to GitHub.
+- [ ] Repair Railway deployment so the latest code and all visual assets load from the production domain.
+- [x] Redesign the mobile portal into a compact, quote-first flow with readable hierarchy and touch-friendly actions.
+- [ ] Validate the fixed Railway deployment and mobile experience, then push the repair to GitHub.
