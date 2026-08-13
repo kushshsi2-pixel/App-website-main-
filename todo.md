@@ -18,3 +18,6 @@
 - [ ] Repair Railway deployment so the latest code and all visual assets load from the production domain.
 - [x] Redesign the mobile portal into a compact, quote-first flow with readable hierarchy and touch-friendly actions.
 - [ ] Validate the fixed Railway deployment and mobile experience, then push the repair to GitHub.
+- [x] Add an explicit Railway root build configuration and release marker to force the current main branch into a fresh production build.
+- [x] Add a magic-link resend cooldown and clearer Supabase email-rate-limit handling on the mobile sign-in screen.
+- [ ] Verify the new `release.json` marker and current visual build from the live Railway domain after the forced main-branch push.

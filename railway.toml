@@ -1,0 +1,11 @@
+# North Eastern Lawn Railway release contract.
+# This makes Railway build and start the repository root on every main-branch deploy.
+# The public release.json file changes with each forced production release.
+[build]
+builder = "NIXPACKS"
+buildCommand = "pnpm install --frozen-lockfile && pnpm run build"
+
+[deploy]
+startCommand = "pnpm run start"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
