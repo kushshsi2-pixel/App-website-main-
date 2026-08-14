@@ -7,5 +7,7 @@ describe("Railway Node 18 production path", () => {
 
     expect(source).toContain('fileURLToPath(import.meta.url)');
     expect(source).not.toContain("import.meta.dirname");
+    expect(source).toContain('import("vite")');
+    expect(source).not.toContain('from "vite"');
   });
 });
