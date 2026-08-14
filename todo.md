@@ -24,3 +24,4 @@
 - [x] Remove the unused Manus OAuth production startup dependency that crashes Railway when `OAUTH_SERVER_URL` is absent.
 - [ ] Validate the server starts under Railway-compatible environment variables and verify the live release marker after deployment.
 - [x] Replace the Node 22-only production static-path resolver with a Node 18-compatible resolver for Railway.
+- [x] Bind the production server directly to Railway’s required `PORT` instead of scanning for an alternate available port.

@@ -8,6 +8,8 @@ describe("Railway startup contract", () => {
 
     expect(entry).not.toContain('from "./oauth"');
     expect(entry).not.toContain("registerOAuthRoutes(app)");
+    expect(entry).toContain('server.listen(port, "0.0.0.0"');
+    expect(entry).not.toContain("findAvailablePort");
     expect(context).not.toContain('from "./sdk"');
   });
 });
