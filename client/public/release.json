@@ -1,4 +1,4 @@
 {
-  "release": "railway-main-2026-08-13T23:57:00Z",
-  "purpose": "Railway production deployment verification marker"
+  "release": "railway-oauth-startup-fix-2026-08-14T00:31:00Z",
+  "purpose": "Redeploy the validated OAuth-free Railway production entry point"
 }
