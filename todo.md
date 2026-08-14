@@ -21,3 +21,5 @@
 - [x] Add an explicit Railway root build configuration and release marker to force the current main branch into a fresh production build.
 - [x] Add a magic-link resend cooldown and clearer Supabase email-rate-limit handling on the mobile sign-in screen.
 - [ ] Verify the new `release.json` marker and current visual build from the live Railway domain after the forced main-branch push.
+- [x] Remove the unused Manus OAuth production startup dependency that crashes Railway when `OAUTH_SERVER_URL` is absent.
+- [ ] Validate the server starts under Railway-compatible environment variables and verify the live release marker after deployment.

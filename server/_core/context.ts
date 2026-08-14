@@ -1,6 +1,5 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { User } from "../../drizzle/schema";
-import { sdk } from "./sdk";
 import { SupabasePortalUser, verifySupabaseAccessToken } from "../supabaseAuth";
 
 export type TrpcContext = {
@@ -16,12 +15,9 @@ export async function createContext(
   let user: User | null = null;
   let supabaseUser: SupabasePortalUser | null = null;
 
-  try {
-    user = await sdk.authenticateRequest(opts.req);
-  } catch (error) {
-    // Authentication is optional for public procedures.
-    user = null;
-  }
+  // The Railway deployment uses Supabase customer access rather than Manus
+  // OAuth. Keep the legacy user field empty for backwards-compatible routers.
+  user = null;
 
   try {
     supabaseUser = await verifySupabaseAccessToken(opts.req.headers);
