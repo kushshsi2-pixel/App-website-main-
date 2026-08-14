@@ -87,3 +87,9 @@ The supplied circular lawn-and-mower emblem remains the primary brand lockup. A 
 The redesign moves from an editorial information page to an **image-led acquisition experience**. It uses dramatic photograph crops, a compact color-blocked quote prompt, oversized service imagery, and barely-there supporting copy. Orange is elevated from a minor accent to the action color; evergreen remains the grounding canvas.
 
 The first-time customer portal state will behave like a focused conversion moment rather than an empty dashboard. It will show a visual property-care brief, three illustrated quote steps, and one clear call to action: **Build my quote**. The existing service request form remains the data destination, but the first-use experience will guide customers into it instead of presenting a blank calendar.
+
+## Production Recovery Verification
+
+The Railway production domain returned HTTP 200 for the homepage and `/release.json` after the minimal static-server release. Its hashed JavaScript bundle and the production CDN image endpoint also returned HTTP 200, confirming that the current SPA assets are reachable from production.
+
+Browser DOM inspection confirmed the live Railway page mounted the current `Home.tsx` component and loaded its production bundle. The blank browser capture was an inspection-rendering artifact rather than an empty production application.

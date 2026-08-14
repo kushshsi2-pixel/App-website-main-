@@ -15,16 +15,22 @@
 - [x] Redesign the marketing site with a visual-first, less text-heavy composition and richer custom imagery.
 - [x] Add a first-time signed-in customer empty state with a guided quote-request workflow.
 - [x] Validate the redesigned desktop and mobile experience, then push the enhancement to GitHub.
-- [ ] Repair Railway deployment so the latest code and all visual assets load from the production domain.
+- [x] Repair Railway deployment so the latest code and all visual assets load from the production domain.
 - [x] Redesign the mobile portal into a compact, quote-first flow with readable hierarchy and touch-friendly actions.
-- [ ] Validate the fixed Railway deployment and mobile experience, then push the repair to GitHub.
+- [x] Validate the fixed Railway deployment and mobile experience, then push the repair to GitHub.
 - [x] Add an explicit Railway root build configuration and release marker to force the current main branch into a fresh production build.
 - [x] Add a magic-link resend cooldown and clearer Supabase email-rate-limit handling on the mobile sign-in screen.
-- [ ] Verify the new `release.json` marker and current visual build from the live Railway domain after the forced main-branch push.
+- [x] Verify the new `release.json` marker and current visual build from the live Railway domain after the forced main-branch push.
 - [x] Remove the unused Manus OAuth production startup dependency that crashes Railway when `OAUTH_SERVER_URL` is absent.
-- [ ] Validate the server starts under Railway-compatible environment variables and verify the live release marker after deployment.
+- [x] Validate the server starts under Railway-compatible environment variables and verify the live release marker after deployment.
 - [x] Replace the Node 22-only production static-path resolver with a Node 18-compatible resolver for Railway.
 - [x] Bind the production server directly to Railway’s required `PORT` instead of scanning for an alternate available port.
 - [x] Defer the Vite 7 development import until development mode so Railway’s Node 18 production process loads only the static server path.
 - [x] Replace Railway’s production start command with a minimal Node 18-compatible static SPA server that serves the built client and uses the exact `PORT`.
 - [x] Replace Railway’s production start command with a minimal Node 18-compatible static SPA server that serves the built client and uses the exact `PORT`.
+- [x] Replace the current marketing content and navigation with the supplied 2027 quote-first website flow.
+- [x] Build the staged Property → Service → Contact quote form with a clear 2027 priority-list confirmation state.
+- [x] Add the supplied pricing anchor, services, 2027 scheduling CTA, local service area, trust language, process, and FAQs without fabricated testimonials or results.
+- [x] Add the visible Home navigation item and complete the supplied conversion-site navigation flow.
+- [x] Add a truthful Show Your Work section that avoids inventing project locations, customer proof, or before-and-after results.
+- [ ] Validate the new quote conversion flow on desktop and phone sizes, then publish it to GitHub and Railway.

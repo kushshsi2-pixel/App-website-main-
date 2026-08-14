@@ -3,7 +3,7 @@ import { Client } from "pg";
 import { describe, expect, it } from "vitest";
 
 const connectionString = process.env.SUPABASE_DATABASE_URL;
-const requiredTables = ["profiles", "properties", "service_plans", "service_visits", "invoices", "service_requests", "quote_requests"];
+const requiredTables = ["profiles", "properties", "service_plans", "service_visits", "invoices", "service_requests", "quote_requests", "public_quote_leads"];
 
 describe("North Eastern Lawn Supabase schema", () => {
   it("creates every customer portal table with row-level security enabled", async () => {
@@ -17,6 +17,19 @@ describe("North Eastern Lawn Supabase schema", () => {
       expect(result.rows).toHaveLength(requiredTables.length);
       expect(result.rows.map(row => row.tablename).sort()).toEqual([...requiredTables].sort());
       expect(result.rows.every(row => row.rowsecurity)).toBe(true);
+    } finally {
+      await client.end();
+    }
+  });
+
+  it("permits website lead insertion without exposing lead records publicly", async () => {
+    const client = new Client({ connectionString, ssl: { rejectUnauthorized: false } });
+    await client.connect();
+    try {
+      const result = await client.query<{ policyname: string; cmd: string }>(
+        "select policyname, cmd from pg_policies where schemaname = 'public' and tablename = 'public_quote_leads'"
+      );
+      expect(result.rows).toEqual([{ policyname: "public_quote_leads_website_insert", cmd: "INSERT" }]);
     } finally {
       await client.end();
     }
