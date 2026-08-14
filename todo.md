@@ -26,3 +26,5 @@
 - [x] Replace the Node 22-only production static-path resolver with a Node 18-compatible resolver for Railway.
 - [x] Bind the production server directly to Railway’s required `PORT` instead of scanning for an alternate available port.
 - [x] Defer the Vite 7 development import until development mode so Railway’s Node 18 production process loads only the static server path.
+- [x] Replace Railway’s production start command with a minimal Node 18-compatible static SPA server that serves the built client and uses the exact `PORT`.
+- [x] Replace Railway’s production start command with a minimal Node 18-compatible static SPA server that serves the built client and uses the exact `PORT`.
